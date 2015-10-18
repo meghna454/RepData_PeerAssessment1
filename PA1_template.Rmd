@@ -1,25 +1,100 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+#PEER ASSESSMENT PROJECT 1 OF "REPRODUCIBLE RESEARCH"
+
+##First we read the .csv files
+
+```{r, echo = TRUE}
+activity <- read.csv("/Users/meghna/desktop/Coursera/activity.csv")
+
+```
+
+##1. Finding the mean and median and histogram
+
+```{r, echo = TRUE}
+
+library(plyr)
+library(dplyr)
+library(reshape2)
+library(stats)
+
+steps_date <- tapply(activity$steps, activity$date,sum)
+hist(steps_date, col="red")
+stdate <- as.data.frame(steps_date)
+names(stdate) <- c ("steps")
+
+step_mean <- mean(stdate[ ,1],na.rm=TRUE)
+step_median <- median(stdate[ ,1], na.rm=TRUE)
+print(step_mean)
+print(step_median)
+```
+## Part 2. 
+
+```{r, echo=TRUE}
+library(stats)
+library(ggplot2)
+int <- aggregate(steps ~ interval, activity, mean, na.rm=TRUE)
+
+ggplot(data = int, aes(interval, steps)) +
+     geom_line() 
+maxint <- int[max(int$steps), ]
+print(maxint)
+head(int)
+
+```
+
+##part 3.
+
+```{r, echo=TRUE}
+library(dplyr)
+library(Hmisc)
+library(stats)
+sumna <- sum(is.na(activity$steps))
+print(sumna)
+actNA <- activity[is.na(activity$steps), ]
+head(actNA, 10)
+activity$date <- as.Date(activity$date)
+activity$dayOfWeek <- weekdays(activity$date)
+meansteps <- ddply(activity, c('interval'),
+                                summarise, avgSteps = mean(steps, na.rm=TRUE))
+newdf <- merge(activity, meansteps, by.x="interval", by.y ="interval")
+##tail(newdf, 25)
+   
+NArows <- which(is.na(newdf$steps))
+newdf$steps[NArows] <- newdf$avgSteps[NArows]
+
+##tail(newdf, 25)
+totalsteps <- tapply(newdf$steps, newdf$date, sum)
+
+hist(totalsteps, col="red")
 
 
-## Loading and preprocessing the data
+totalstepsmean <- mean(totalsteps, na.rm=TRUE)
+totalstepsmedian <- median(totalsteps, na.rm=TRUE)
+print(totalstepsmean)
+print(totalstepsmedian)
 
 
+##head(totalsteps)
+```
 
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
+##Part 4
+```{r, echo=TRUE}
 
 
-## Imputing missing values
+library(dplyr)
+library(plyr)
+library(stats)
+library(Hmisc)
+library(graphics)
+library(lattice)
 
+newdf$newfac <- as.factor(ifelse(newdf$dayOfWeek %in% c("Saturday", "Sunday"), "weekend", "weekday"))
 
+newdf <- arrange(newdf, newfac)
+newdf$avgSteps[which(newdf$newfac%in%"weekend")] <- mean(newdf$steps, na.rm=TRUE)
+newdf$avgSteps[which(newdf$newfac%in%"weekday")] <- mean(newdf$steps, na.rm=TRUE)
 
-## Are there differences in activity patterns between weekdays and weekends?
+xyplot( steps ~ interval| newfac, data=newdf, type="l" )
+
+tail(newdf, 30)
+str(newdf)
+```
